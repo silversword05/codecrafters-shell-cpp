@@ -14,8 +14,11 @@ int main() {
         if (input.starts_with("exit")) {
             return std::stoi(input.substr(4));
             break;
+        } else if (input.starts_with("echo")) {
+            std::cout << input.substr(5) << std::endl;
+        } else {
+            std::cout << input << ": command not found" << std::endl;
         }
-        std::cout << input << ": command not found" << std::endl;
     }
 
     return 0;
