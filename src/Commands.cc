@@ -40,7 +40,12 @@ void execute<Command::TYPE>(const std::string &cmd_str,
                             const std::string &arg_str) {
     Command cmd = get_command(arg_str);
     if (cmd == Command::INVALID) {
-        std::cout << arg_str << ": not found" << std::endl;
+        std::optional<std::string> cmd_path = cmd_exists_in_path(arg_str);
+        if (cmd_path) {
+            std::cout << arg_str << " is " << *cmd_path << std::endl;
+        } else {
+            std::cout << arg_str << ": not found" << std::endl;
+        }
     } else {
         std::cout << arg_str << " is a shell builtin" << std::endl;
     }

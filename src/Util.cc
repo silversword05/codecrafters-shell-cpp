@@ -30,3 +30,17 @@ std::vector<std::string> split(const std::string &s, char delim,
     }
     return result;
 }
+
+std::optional<std::string> cmd_exists_in_path(const std::string &cmd) {
+    std::string path_env = std::getenv("PATH");
+    std::vector<std::string> paths = split(path_env, ':');
+
+    for (const std::string &path : paths) {
+        std::string full_path = path + "/" + cmd;
+        if (std::filesystem::exists(full_path)) {
+            return full_path;
+        }
+    }
+
+    return std::nullopt;
+}
