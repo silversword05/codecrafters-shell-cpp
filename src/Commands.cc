@@ -1,21 +1,27 @@
 #include "Commands.h"
 
-Command get_command(const std::string &cmd_str) {
+#include <sys/wait.h>
+#include <unistd.h>
+
+Command get_command(std::string &cmd_str) {
     if (cmd_str == "exit") {
         return Command::EXIT;
     } else if (cmd_str == "echo") {
         return Command::ECHO;
     } else if (cmd_str == "type") {
         return Command::TYPE;
-    } else {
-        return Command::INVALID;
     }
+    std::optional<std::string> cmd_path = cmd_exists_in_path(cmd_str);
+    if (cmd_path.has_value()) {
+        cmd_str = cmd_path.value();
+        return Command::EXECUTABLE;
+    }
+    return Command::INVALID;
 }
 
 template <>
 void execute<Command::INVALID>(const std::string &cmd_str,
                                const std::string &arg_str) {
-    assert(get_command(cmd_str) == Command::INVALID);
     std::cout << cmd_str << ": command not found" << std::endl;
 }
 
@@ -38,17 +44,22 @@ void execute<Command::ECHO>(const std::string &cmd_str,
 template <>
 void execute<Command::TYPE>(const std::string &cmd_str,
                             const std::string &arg_str) {
-    Command cmd = get_command(arg_str);
+    std::string arg_str_cpy = arg_str;
+    Command cmd = get_command(arg_str_cpy);
     if (cmd == Command::INVALID) {
-        std::optional<std::string> cmd_path = cmd_exists_in_path(arg_str);
-        if (cmd_path) {
-            std::cout << arg_str << " is " << *cmd_path << std::endl;
-        } else {
-            std::cout << arg_str << ": not found" << std::endl;
-        }
+        std::cout << arg_str << ": not found" << std::endl;
+    } else if (cmd == Command::EXECUTABLE) {
+        std::cout << arg_str << " is " << arg_str_cpy << std::endl;
     } else {
         std::cout << arg_str << " is a shell builtin" << std::endl;
     }
+}
+
+template <>
+void execute<Command::EXECUTABLE>(const std::string &cmd_str,
+                                  const std::string &arg_str) {
+    std::string full_cmd = cmd_str + " " + arg_str;
+    std::system(full_cmd.c_str());
 }
 
 void dispatch(const std::string &input) {
@@ -63,6 +74,9 @@ void dispatch(const std::string &input) {
         break;
     case Command::TYPE:
         execute<Command::TYPE>(parts[0], parts[1]);
+        break;
+    case Command::EXECUTABLE:
+        execute<Command::EXECUTABLE>(parts[0], parts[1]);
         break;
     default:
         execute<Command::INVALID>(parts[0], parts[1]);

@@ -21,8 +21,7 @@ std::vector<std::string> split(const std::string &s, char delim,
         }
 
         if (split_cnt && result.size() == split_cnt) {
-            std::getline(ss, item);
-            if (!item.empty()) {
+            if (std::getline(ss, item) && !item.empty()) {
                 result.push_back(trim(item));
             }
             break;
