@@ -12,6 +12,8 @@ Command get_command(std::string &cmd_str) {
         return Command::TYPE;
     } else if (cmd_str == "pwd") {
         return Command::PWD;
+    } else if (cmd_str == "cd") {
+        return Command::CD;
     }
     std::optional<std::string> cmd_path = cmd_exists_in_path(cmd_str);
     if (cmd_path.has_value()) {
@@ -67,6 +69,17 @@ void execute<Command::PWD>(const std::string &cmd_str,
     std::cout << std::filesystem::current_path().string() << std::endl;
 }
 
+template <>
+void execute<Command::CD>(const std::string &cmd_str,
+                          const std::string &arg_str) {
+    std::error_code ec;
+    std::filesystem::current_path(arg_str, ec);
+    if (ec) {
+        std::cout << cmd_str << ": " << arg_str << ": " << ec.message()
+                  << std::endl;
+    }
+}
+
 void dispatch(const std::string &input) {
     std::vector<std::string> parts = split(input, ' ', 1);
     Command cmd = get_command(parts[0]);
@@ -82,6 +95,7 @@ void dispatch(const std::string &input) {
         EXECUTE(TYPE)
         EXECUTE(EXECUTABLE)
         EXECUTE(PWD)
+        EXECUTE(CD)
     default:
         execute<Command::INVALID>(parts[0], parts[1]);
     }

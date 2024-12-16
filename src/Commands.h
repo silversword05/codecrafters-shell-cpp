@@ -8,6 +8,7 @@ enum class Command : char {
     TYPE,       // type
     EXECUTABLE, // custom command
     PWD,        // pwd
+    CD,         // cd
     INVALID = std::numeric_limits<char>::max(),
 };
 
@@ -34,5 +35,8 @@ void execute<Command::EXECUTABLE>(const std::string &cmd_str,
 template <>
 void execute<Command::PWD>(const std::string &cmd_str,
                            const std::string &arg_str);
+template <>
+void execute<Command::CD>(const std::string &cmd_str,
+                          const std::string &arg_str);
 
 void dispatch(const std::string &input);
