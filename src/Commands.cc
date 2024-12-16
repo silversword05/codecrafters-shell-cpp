@@ -72,6 +72,17 @@ void execute<Command::PWD>(const std::string &cmd_str,
 template <>
 void execute<Command::CD>(const std::string &cmd_str,
                           const std::string &arg_str) {
+    if (arg_str == "~") {
+        std::error_code ec;
+        std::filesystem::current_path(std::filesystem::path(getenv("HOME")),
+                                       ec);
+        if (ec) {
+            std::cout << cmd_str << ": " << arg_str << ": " << ec.message()
+                      << std::endl;
+        }
+        return;
+    }
+
     std::error_code ec;
     std::filesystem::current_path(arg_str, ec);
     if (ec) {
