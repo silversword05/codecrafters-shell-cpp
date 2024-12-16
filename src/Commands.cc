@@ -61,6 +61,7 @@ template <>
 void execute<Command::EXECUTABLE>(const std::string &cmd_str,
                                   const std::string &arg_str) {
     std::string full_cmd = cmd_str + " " + arg_str;
+    // std::cout << "Executing: " << full_cmd << std::endl;
     std::system(full_cmd.c_str());
 }
 
@@ -93,7 +94,7 @@ void execute<Command::CD>(const std::string &cmd_str,
 }
 
 void dispatch(const std::string &input) {
-    std::vector<std::string> parts = split(input, ' ', 1);
+    std::vector<std::string> parts = splitWithQuotes(input, 1);
     Command cmd = get_command(parts[0]);
 
 #define EXECUTE(CMD)                                                           \
