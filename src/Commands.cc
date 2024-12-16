@@ -15,7 +15,7 @@ Command get_command(std::string &cmd_str) {
     } else if (cmd_str == "cd") {
         return Command::CD;
     }
-    std::optional<std::string> cmd_path = cmd_exists_in_path(cmd_str);
+    std::optional<std::string> cmd_path = cmdExistsInPath(cmd_str);
     if (cmd_path.has_value()) {
         cmd_str = cmd_path.value();
         return Command::EXECUTABLE;
@@ -40,7 +40,8 @@ void execute<Command::EXIT>(const std::string &, const std::string &arg_str) {
 
 template <>
 void execute<Command::ECHO>(const std::string &, const std::string &arg_str) {
-    std::cout << arg_str << std::endl;
+    std::vector<std::string> parts = splitWithQuotes(arg_str);
+    std::cout << join(parts, " ") << std::endl;
 }
 
 template <>
@@ -75,7 +76,7 @@ void execute<Command::CD>(const std::string &cmd_str,
     if (arg_str == "~") {
         std::error_code ec;
         std::filesystem::current_path(std::filesystem::path(getenv("HOME")),
-                                       ec);
+                                      ec);
         if (ec) {
             std::cout << cmd_str << ": " << arg_str << ": " << ec.message()
                       << std::endl;
