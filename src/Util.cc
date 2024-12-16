@@ -36,18 +36,25 @@ std::vector<std::string> splitWithQuotes(const std::string &input) {
     char quote_type = '\0';
 
     for (char c : input) {
-        if (c == ' ' && quote_type == '\0') {
-            if (!current.empty()) {
-                result.push_back(current);
-                current.clear();
-            }
-        } else if (c == '\'' || c == '"') {
-            if (c == quote_type) {
-                quote_type = '\0';
-            } else if (quote_type == '\0') {
-                quote_type = c;
+        if(c == ' ' || c == '\\' || c == '"' || c== '\'') {
+            if(quote_type == '\0') {
+                if(c == ' ') {
+                    if(!current.empty()) {
+                        result.push_back(current);
+                        current.clear();
+                    }
+                } else {
+                    quote_type = c;
+                }
             } else {
-                current += c;
+                if(quote_type == '\\') {
+                    quote_type = '\0';
+                    current += c;
+                } else if(c == quote_type) {
+                    quote_type = '\0';
+                } else {
+                    current += c;
+                }
             }
         } else {
             current += c;
