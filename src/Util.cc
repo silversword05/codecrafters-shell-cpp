@@ -34,12 +34,21 @@ std::vector<std::string> splitWithQuotes(const std::string &input) {
     std::vector<std::string> result;
     std::string current;
     char quote_type = '\0';
+    bool backslash_within_double_quotes = false;
 
     for (char c : input) {
-        if(c == ' ' || c == '\\' || c == '"' || c== '\'') {
-            if(quote_type == '\0') {
-                if(c == ' ') {
-                    if(!current.empty()) {
+        if (backslash_within_double_quotes) {
+            assert(quote_type == '"');
+            backslash_within_double_quotes = false;
+
+            if (c != '\\' && c != '"' && c != '$') {
+                current += '\\';
+            }
+            current += c;
+        } else if (c == ' ' || c == '\\' || c == '"' || c == '\'') {
+            if (quote_type == '\0') {
+                if (c == ' ') {
+                    if (!current.empty()) {
                         result.push_back(current);
                         current.clear();
                     }
@@ -47,13 +56,17 @@ std::vector<std::string> splitWithQuotes(const std::string &input) {
                     quote_type = c;
                 }
             } else {
-                if(quote_type == '\\') {
+                if (quote_type == '\\') {
                     quote_type = '\0';
                     current += c;
-                } else if(c == quote_type) {
+                } else if (c == quote_type) {
                     quote_type = '\0';
                 } else {
-                    current += c;
+                    if (quote_type == '"' && c == '\\') {
+                        backslash_within_double_quotes = true;
+                    } else {
+                        current += c;
+                    }
                 }
             }
         } else {
