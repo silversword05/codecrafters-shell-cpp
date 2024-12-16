@@ -44,8 +44,10 @@ std::vector<std::string> splitWithQuotes(const std::string &input) {
         } else if (c == '\'' || c == '"') {
             if (c == quote_type) {
                 quote_type = '\0';
-            } else {
+            } else if (quote_type == '\0') {
                 quote_type = c;
+            } else {
+                current += c;
             }
         } else {
             current += c;
