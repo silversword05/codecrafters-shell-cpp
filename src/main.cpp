@@ -9,7 +9,8 @@ int main() {
     std::cout << "$ ";
 
     while (std::getline(std::cin, input)) {
-        dispatch(input);
+        CommandProcessor command_processor;
+        command_processor.dispatch(input);
         std::cout << "$ ";
     }
 

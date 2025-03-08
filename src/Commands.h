@@ -12,8 +12,7 @@ enum class Command : char {
     INVALID = std::numeric_limits<char>::max(),
 };
 
-Command get_command(std::string &cmd_str);
-
+namespace detail {
 template <Command cmd>
 void execute(const std::string &cmd_str, const std::string &arg_str);
 
@@ -39,4 +38,21 @@ template <>
 void execute<Command::CD>(const std::string &cmd_str,
                           const std::string &arg_str);
 
-void dispatch(const std::string &input);
+Command getCommand(std::string &cmd_str, bool replace_path);
+std::string exec(std::string_view cmd);
+} // namespace detail
+
+class CommandProcessor {
+  public:
+    void dispatch(const std::string &input);
+
+  private:
+    template <Command cmd>
+    void execute(const std::string &cmd_str, const std::string &arg_str);
+
+    void redirectCout(const std::string &output_file);
+    void restoreCout();
+
+    std::streambuf *cout_buf;
+    std::ofstream out;
+};

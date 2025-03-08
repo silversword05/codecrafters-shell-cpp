@@ -2,13 +2,23 @@
 
 #include <bits/stdc++.h>
 
-std::string trim(const std::string &s, std::string chars = " \t\n");
-std::vector<std::string> split(const std::string &s, char delim,
-                               uint split_cnt = 0);
-std::vector<std::string> splitWithQuotes(const std::string &input,
-                                         uint split_cnt = 0);
+using StringWithEndPos = std::pair<std::string, size_t>;
 
-std::string join(const std::vector<std::string> &v, const std::string &delim);
+class Utils {
+  public:
+    static std::string trim(const std::string &s, std::string chars = " \t\n");
+    static std::vector<std::string> split(const std::string &s, char delim,
+                                          uint split_cnt = 0);
+    static std::vector<StringWithEndPos>
+    parseBashTokens(const std::string &command);
 
-std::optional<std::string> cmdExistsInPath(const std::string &cmd);
-std::string refineCmd(const std::string &cmd);
+    static std::string join(const std::span<std::string> &v,
+                            const std::string &delim);
+
+    static std::optional<std::string> cmdExistsInPath(const std::string &cmd);
+    static std::string refineCmd(const std::string &cmd);
+
+    static std::pair<std::string, std::string>
+    getArgListAndOutputFile(std::vector<StringWithEndPos> &parts,
+                            std::string input);
+};

@@ -1,7 +1,9 @@
 #include "Util.h"
 #include <unistd.h>
 
-std::string trim(const std::string &s, std::string chars) {
+#include "lib/dry-comparisons.hpp"
+
+std::string Utils::trim(const std::string &s, std::string chars) {
     size_t start = s.find_first_not_of(chars);
     size_t end = s.find_last_not_of(chars);
     if (start == std::string::npos) {
@@ -10,20 +12,20 @@ std::string trim(const std::string &s, std::string chars) {
     return s.substr(start, end - start + 1);
 }
 
-std::vector<std::string> split(const std::string &s, char delim,
-                               uint split_cnt) {
+std::vector<std::string> Utils::split(const std::string &s, char delim,
+                                      uint split_cnt) {
     std::vector<std::string> result;
     std::stringstream ss(s);
     std::string item;
 
     while (std::getline(ss, item, delim)) {
         if (!item.empty()) {
-            result.push_back(trim(item));
+            result.push_back(Utils::trim(item));
         }
 
         if (split_cnt && result.size() == split_cnt) {
             if (std::getline(ss, item) && !item.empty()) {
-                result.push_back(trim(item));
+                result.push_back(Utils::trim(item));
             }
             break;
         }
@@ -31,70 +33,48 @@ std::vector<std::string> split(const std::string &s, char delim,
     return result;
 }
 
-std::vector<std::string> splitWithQuotes(const std::string &input,
-                                         uint split_cnt) {
-    std::vector<std::string> result;
-    std::string current;
-    char quote_type = '\0';
-    bool backslash_within_double_quotes = false;
-    size_t pos = 0;
+std::vector<StringWithEndPos> Utils::parseBashTokens(const std::string &input) {
+    std::vector<StringWithEndPos> commandParameters;
 
-    auto push_func = [&]() {
-        if (!current.empty()) {
-            result.push_back(current);
-            current.clear();
+    bool inSingleQuotes = false;
+    bool inDoubleQuotes = false;
+    std::ostringstream currentParam;
+
+    auto flushCurrentParam = [&](size_t i) {
+        if (!currentParam.str().empty()) {
+            commandParameters.push_back({currentParam.str(), i});
+            currentParam.str("");
+            currentParam.clear();
         }
-        if (split_cnt && result.size() == split_cnt && pos < input.size()) {
-            result.push_back(trim(input.substr(pos + 1)));
-            return false;
-        }
-        return true;
     };
-
-    for (char c : input) {
-        if (backslash_within_double_quotes) {
-            assert(quote_type == '"');
-            backslash_within_double_quotes = false;
-
-            if (c != '\\' && c != '"' && c != '$') {
-                current += '\\';
-            }
-            current += c;
-        } else if (c == ' ' || c == '\\' || c == '"' || c == '\'') {
-            if (quote_type == '\0') {
-                if (c == ' ') {
-                    if (!push_func())
-                        return result;
-                } else {
-                    quote_type = c;
-                }
-            } else {
-                if (quote_type == '\\') {
-                    quote_type = '\0';
-                    current += c;
-                } else if (c == quote_type) {
-                    quote_type = '\0';
-                } else {
-                    if (quote_type == '"' && c == '\\') {
-                        backslash_within_double_quotes = true;
-                    } else {
-                        current += c;
-                    }
-                }
-            }
+    for (size_t i = 0; i < input.size(); ++i) {
+        char c = input[i];
+        if (c == '\'' && !inDoubleQuotes) {
+            // Toggle single-quote state and skip the quote itself
+            inSingleQuotes = !inSingleQuotes;
+        } else if (c == '"' && !inSingleQuotes) {
+            // Toggle double-quote state and skip the quote itself
+            inDoubleQuotes = !inDoubleQuotes;
+        } else if (c == '\\' && (inDoubleQuotes || !inSingleQuotes) &&
+                   i + 1 < input.size()) {
+            // Handle escaped characters (e.g., \" or \\)
+            char next = input[++i];
+            currentParam << next;
+        } else if (c == ' ' && !inSingleQuotes && !inDoubleQuotes) {
+            // Split parameters on spaces when outside quotes
+            flushCurrentParam(i);
         } else {
-            current += c;
+            // Append regular characters
+            currentParam << c;
         }
-        pos++;
     }
+    flushCurrentParam(input.size()); // Add the final parameter if any
 
-    push_func();
-
-    return result;
+    return commandParameters;
 }
 
-std::string join(const std::vector<std::string> &words,
-                 const std::string &delim) {
+std::string Utils::join(const std::span<std::string> &words,
+                        const std::string &delim) {
     std::string result = std::accumulate(
         words.begin(), words.end(), std::string(""),
         [](const std::string &a, const std::string &b) { return a + " " + b; });
@@ -107,7 +87,7 @@ std::string join(const std::vector<std::string> &words,
     return result;
 }
 
-std::string refineCmd(const std::string &cmd) {
+std::string Utils::refineCmd(const std::string &cmd) {
     std::string res = "";
     bool add_quotes = false;
     for (char c : cmd) {
@@ -125,16 +105,36 @@ std::string refineCmd(const std::string &cmd) {
     return res;
 }
 
-std::optional<std::string> cmdExistsInPath(const std::string &cmd) {
+std::optional<std::string> Utils::cmdExistsInPath(const std::string &cmd) {
     std::string path_env = std::getenv("PATH");
-    std::vector<std::string> paths = split(path_env, ':');
+    std::vector<std::string> paths = Utils::split(path_env, ':');
 
     for (const std::string &path : paths) {
         std::string full_path = path + "/" + cmd;
         if (std::filesystem::exists(full_path)) {
-            return (path + "/" + refineCmd(cmd));
+            return (path + "/" + cmd);
         }
     }
 
     return std::nullopt;
+}
+
+std::pair<std::string, std::string>
+Utils::getArgListAndOutputFile(std::vector<StringWithEndPos> &parts,
+                               std::string input) {
+    std::string output_file;
+    if (parts.size() > 2 &&
+        parts[parts.size() - 2].first == rollbear::any_of(">", "1>")) {
+        output_file = parts[parts.size() - 1].first;
+
+        size_t last_index = parts[parts.size() - 3].second;
+        input = input.substr(0, last_index);
+    }
+
+    if (input.size() == parts[0].second) {
+        return {output_file, ""};
+    }
+    input = input.substr(parts[0].second + 1);
+
+    return {output_file, input};
 }
